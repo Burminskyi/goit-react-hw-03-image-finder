@@ -32,5 +32,5 @@ export class ImageGalleryItem extends Component {
 }
 
 ImageGalleryItem.propTypes = {
-  pictures: PropTypes.array,
+  picture: PropTypes.object.isRequired,
 };
