@@ -25,3 +25,11 @@
 .Button:focus {
   background-color: #303f9f;
 }
+
+.btnContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  margin: auto;
+  align-content: center;
+}

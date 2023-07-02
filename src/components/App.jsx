@@ -13,76 +13,38 @@ export class App extends Component {
     pictures: [],
     status: 'idle',
     page: 1,
-    btnIsShown: true,
+    totalImages: 0,
     error: '',
   };
 
   async componentDidUpdate(prevProps, prevState) {
-    const prevQuery = prevState.searchQuery;
-    const currentQuery = this.state.searchQuery;
-    const prevPage = prevState.page;
-    const currentPage = this.state.page;
+    const { page, searchQuery } = this.state;
 
-    if (prevQuery !== currentQuery) {
+    if (searchQuery !== prevState.searchQuery || page !== prevState.page) {
+      this.setState({ status: 'pending' });
       try {
-        this.setState({ status: 'pending' });
-        const data = await getPhotos(currentQuery, currentPage);
-        if (data.hits.length > 0 && data.total < currentPage * 12) {
-          this.setState({
-            pictures: data.hits,
-            status: 'resolved',
-            btnIsShown: false,
-          });
-        } else if (data.hits.length > 0 && data.total > currentPage * 12) {
-          this.setState({
-            pictures: data.hits,
-            status: 'resolved',
-            btnIsShown: true,
-          });
-        } else if (data.totalHits === 0) {
+        const data = await getPhotos(searchQuery, page);
+        if (!data.totalHits) {
           this.setState({
             status: 'rejected',
-            btnIsShown: false,
-            error: 'По данному запросу нет изображений :(',
+            error: 'За даним запитом немає зображень :(',
           });
+          return;
         }
+
+        this.setState(prevState => {
+          return {
+            pictures: [...prevState.pictures, ...data.hits],
+            btnIsShown: false,
+            status: 'resolved',
+            totalImages: data.totalHits,
+          };
+        });
       } catch (error) {
-        console.log(error);
         this.setState({
           status: 'rejected',
           error: error.message,
         });
-      }
-    }
-
-    if (prevPage !== currentPage && prevQuery === currentQuery) {
-      try {
-        this.setState({ status: 'pending' });
-        const data = await getPhotos(currentQuery, currentPage);
-        if (
-          (data.hits.length > 0 && data.total < this.state.page * 12) ||
-          (data.hits.length > 0 && data.total < this.state.page * 12)
-        ) {
-          this.setState({ status: 'pending' });
-          this.setState(prevState => {
-            return {
-              pictures: [...prevState.pictures, ...data.hits],
-              btnIsShown: false,
-              status: 'resolved',
-            };
-          });
-        } else if (data.hits.length > 0 && data.total > this.state.page * 12) {
-          this.setState(prevState => {
-            return {
-              pictures: [...prevState.pictures, ...data.hits],
-              btnIsShown: true,
-              status: 'resolved',
-            };
-          });
-        }
-      } catch (error) {
-        console.log(error);
-        this.setState({ status: 'rejected', error: error.message });
       }
     }
   }
@@ -91,15 +53,20 @@ export class App extends Component {
     this.setState({
       page: 1,
       searchQuery,
+      pictures: [],
+      totalImages: 0,
     });
   };
 
   handleLoadMoreClick = () => {
-    this.setState({ page: this.state.page + 1 });
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
   };
 
   render() {
-    const { status, pictures, btnIsShown, error } = this.state;
+    const { status, pictures, totalImages, error, page } = this.state;
+    const showBtn = totalImages !== pictures.length && page * 12 < 500;
     if (status === 'idle') {
       return (
         <>
@@ -111,7 +78,7 @@ export class App extends Component {
       return (
         <>
           <Searchbar onSubmit={this.handleSearchSubmit} />
-          {pictures !== [] && <ImageGallery pictures={pictures} />}
+          {pictures.length > 0 && <ImageGallery pictures={pictures} />}
           <Loader />
         </>
       );
@@ -124,19 +91,11 @@ export class App extends Component {
       );
     if (status === 'resolved')
       return (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '15px',
-            margin: 'auto',
-            alignContent: 'center',
-          }}
-        >
+        <>
           <Searchbar onSubmit={this.handleSearchSubmit} />
           <ImageGallery pictures={pictures} />
-          {btnIsShown && <Button onClick={this.handleLoadMoreClick} />}
-        </div>
+          {showBtn && <Button onClick={this.handleLoadMoreClick} />}
+        </>
       );
   }
 }
