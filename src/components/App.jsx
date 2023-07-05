@@ -35,7 +35,6 @@ export class App extends Component {
         this.setState(prevState => {
           return {
             pictures: [...prevState.pictures, ...data.hits],
-            btnIsShown: false,
             status: 'resolved',
             totalImages: data.totalHits,
           };
